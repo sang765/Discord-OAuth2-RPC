@@ -9,7 +9,7 @@ import {
 	Util,
 } from './src';
 import { API } from './src';
-import { CLIENT_ID, REDIRECT_URI } from './config';
+import { CLIENT_ID, REDIRECT_URI, SCOPE } from './config';
 import { TokenResponse } from './src';
 import { DEFAULTS } from './src';
 
@@ -45,7 +45,7 @@ app.get('/', (_req, res) => {
 	url.searchParams.set('client_id', CLIENT_ID);
 	url.searchParams.set('redirect_uri', getRedirectURI());
 	url.searchParams.set('response_type', 'code');
-	url.searchParams.set('scope', 'identify');
+	url.searchParams.set('scope', SCOPE);
 	// Generate code_challenge
 	const codeVerifier = randomBytes(32).toString('base64url');
 	const codeChallenge = createHash('sha256')
