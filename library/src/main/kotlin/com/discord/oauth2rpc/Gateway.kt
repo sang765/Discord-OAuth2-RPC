@@ -15,7 +15,7 @@ class GatewayClient {
     private var processingJob: Job? = null
     private var heartbeatJob: Job? = null
     private var helloTimerJob: Job? = null
-    private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
+    private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
     private var lastAck = true
     private var lastHeartbeatAt = 0L
@@ -76,11 +76,12 @@ class GatewayClient {
 
         processingJob = scope.launch {
             try {
-                for (frame in session.incoming) {
+                    for (frame in session.incoming) {
                     when (frame) {
                         is Frame.Text -> handleMessage(frame.readText(), opts, ready)
                         is Frame.Close -> {
-                            handleClose("", 1000)
+                            val (code, reason) = parseCloseFrame(frame)
+                            handleClose(reason, code)
                             if (!ready.isCompleted) ready.completeExceptionally(Exception("Gateway closed before ready"))
                         }
                         else -> {}
@@ -99,25 +100,31 @@ class GatewayClient {
         val session = wsSession ?: return false
         scope.launch {
             try {
-                val jsonStr = when (d) {
-                    is JsonObject -> """{"op":$op,"d":$d}"""
-                    is Map<*, *> -> {
-                        @Suppress("UNCHECKED_CAST")
-                        val map = d as Map<String, Any?>
-                        val dStr = JsonObjectMapper.mapToJson(map)
-                        """{"op":$op,"d":$dStr}"""
-                    }
-                    is Number -> """{"op":$op,"d":${d.toInt()}}"""
-                    is String -> """{"op":$op,"d":"$d"}"""
-                    is Boolean -> """{"op":$op,"d":$d}"""
-                    null -> """{"op":$op,"d":null}"""
-                    else -> """{"op":$op,"d":"$d"}"""
-                }
+                val jsonStr = buildJsonString(op, d)
                 session.send(Frame.Text(jsonStr))
                 onSent?.invoke(mapOf("op" to op, "d" to d))
             } catch (e: Exception) { onError?.invoke(e) }
         }
         return true
+    }
+
+    private fun buildJsonString(op: Int, d: Any?): String {
+        val json = buildJsonObject {
+            put("op", op)
+            when (d) {
+                is JsonElement -> put("d", d)
+                is Map<*, *> -> {
+                    @Suppress("UNCHECKED_CAST")
+                    put("d", Json.parseToJsonElement(JsonObjectMapper.mapToJson(d as Map<String, Any?>)))
+                }
+                is Number -> put("d", d.toInt())
+                is String -> put("d", d)
+                is Boolean -> put("d", d)
+                null -> put("d", JsonNull)
+                else -> put("d", d.toString())
+            }
+        }
+        return json.toString()
     }
 
     fun close(code: Int = 1000, reason: String? = null) {
@@ -287,6 +294,14 @@ class GatewayClient {
         wsSession = null
         onClose?.invoke(GatewayCloseInfo(code, reason, !fatal && snapshot != null, snapshot))
         debug("[gateway] close code=$code reason=$reason resumable=${!fatal && snapshot != null}")
+    }
+
+    private fun parseCloseFrame(frame: Frame.Close): Pair<Int, String> {
+        val data = frame.data ?: return Pair(1000, "")
+        if (data.size < 2) return Pair(1000, "")
+        val code = ((data[0].toInt() and 0xFF) shl 8) or (data[1].toInt() and 0xFF)
+        val reason = if (data.size > 2) data.copyOfRange(2, data.size).decodeToString() else ""
+        return Pair(code, reason)
     }
 
     private fun debug(msg: String) { onDebug?.invoke(msg) }

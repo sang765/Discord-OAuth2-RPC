@@ -33,8 +33,7 @@ data class GatewayConnectOptions(
     val gatewayUrl: String? = null,
     val version: Int? = null,
     val wsHeaders: Map<String, String>? = null,
-    val helloTimeoutMs: Long? = null,
-    val signal: Nothing? = null
+    val helloTimeoutMs: Long? = null
 )
 
 data class GatewayPacket(
@@ -57,6 +56,7 @@ data class SessionUpdateEvent(
     val resumeGatewayUrl: String?
 )
 
+@Serializable
 data class ReadyEvent(
     val user: ReadyUser,
     @SerialName("session_id") val sessionId: String,

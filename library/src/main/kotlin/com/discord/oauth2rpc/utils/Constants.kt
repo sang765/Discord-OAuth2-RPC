@@ -20,15 +20,10 @@ val NON_RESUMABLE_CLOSE_CODES: Set<Int> = setOf(
 
 object DEFAULTS {
     const val API_BASE = "https://discord.com/api"
-    const val API_SDK_BASE = "https://gaming-sdk.com/api"
-    const val API_VERSION = 9
     const val GATEWAY_URL = "wss://gateway.discord.gg"
-    const val GATEWAY_SDK_URL = "wss://gateway.gaming-sdk.com"
     const val GATEWAY_VERSION = 9
     const val USER_AGENT = "Discord Embedded/1.9.15780"
-    const val REQUEST_TIMEOUT_MS = 15_000L
     const val HELLO_TIMEOUT_MS = 20_000L
-    const val CLOSE_TIMEOUT_MS = 5_000L
 }
 
 object DEFAULT_SUPER_PROPERTIES : HashMap<String, Any>() {

@@ -6,19 +6,28 @@ import io.ktor.client.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
+import java.io.Closeable
 import java.util.*
 
-class API(val baseURL: String = DEFAULTS.API_SDK_BASE) {
-    val api: RouteBuilder get() = RouteBuilder(baseURL)
+class API(val baseURL: String = DEFAULTS.API_BASE) : Closeable {
+    private val client = HttpClient()
+
+    val api: RouteBuilder get() = RouteBuilder(baseURL, client)
+
+    override fun close() {
+        client.close()
+    }
 }
 
-class RouteBuilder(private val baseUrl: String, private val path: String = "") {
-
-    private val client = HttpClient()
+class RouteBuilder(
+    private val baseUrl: String,
+    private val client: HttpClient,
+    private val path: String = ""
+) {
 
     operator fun get(key: String): RouteBuilder {
         val newPath = if (path.isEmpty()) key else "$path/$key"
-        return RouteBuilder(baseUrl, newPath)
+        return RouteBuilder(baseUrl, client, newPath)
     }
 
     operator fun invoke(vararg args: Any?): RouteBuilder {
@@ -26,7 +35,7 @@ class RouteBuilder(private val baseUrl: String, private val path: String = "") {
         if (filtered.isEmpty()) return this
         val suffix = filtered.joinToString("/")
         val newPath = if (path.isEmpty()) suffix else "$path/$suffix"
-        return RouteBuilder(baseUrl, newPath)
+        return RouteBuilder(baseUrl, client, newPath)
     }
 
     suspend fun get(block: suspend RequestConfig.() -> Unit = {}): HttpResponse {

@@ -7,6 +7,7 @@ import io.ktor.client.statement.*
 import kotlinx.serialization.json.*
 import java.net.URI
 import java.net.URLDecoder
+import java.net.URLEncoder
 
 typealias Snowflake = String
 
@@ -69,8 +70,16 @@ object Util {
     }
 
     fun <T> lazy(cb: () -> T): () -> T {
+        val lock = Any()
+        var initialized = false
         var defaultValue: T? = null
-        return { if (defaultValue == null) defaultValue = cb(); defaultValue!! }
+        return {
+            if (!initialized) synchronized(lock) {
+                if (!initialized) { defaultValue = cb(); initialized = true }
+            }
+            @Suppress("UNCHECKED_CAST")
+            defaultValue as T
+        }
     }
 
     fun clearNullOrUndefinedObject(obj: Map<String, Any?>): Map<String, Any?>? {
@@ -133,7 +142,7 @@ object Util {
     suspend fun refreshToken(rest: API, token: String, clientId: String, oldData: TokenResponse): TokenResponse {
         val res = rest.api["oauth2"]["token"].post {
             headers = mapOf("Authorization" to token, "Content-Type" to "application/x-www-form-urlencoded")
-            body = "client_id=$clientId&refresh_token=${oldData.refreshToken}&grant_type=refresh_token"
+            body = "client_id=${URLEncoder.encode(clientId, "UTF-8")}&refresh_token=${URLEncoder.encode(oldData.refreshToken, "UTF-8")}&grant_type=refresh_token"
         }
         if (!res.status.value.toString().startsWith("2")) {
             val json = Json.parseToJsonElement(res.bodyAsText()).jsonObject

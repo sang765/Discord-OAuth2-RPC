@@ -7,11 +7,15 @@ open class BitField(bits: Int = defaultBit) {
 
     open val flags: Map<String, Int> get() = emptyMap()
 
-    fun any(bit: Int): Boolean = (bitfield and resolve(bit)) != defaultBit
+    fun any(bit: Int): Boolean {
+        if (bit == 0) return bitfield == 0
+        return (bitfield and resolve(bit)) != defaultBit
+    }
 
     fun equals(bit: Int): Boolean = bitfield == resolve(bit)
 
     fun has(bit: Int): Boolean {
+        if (bit == 0) return bitfield == 0
         val resolved = resolve(bit)
         return (bitfield and resolved) == resolved
     }

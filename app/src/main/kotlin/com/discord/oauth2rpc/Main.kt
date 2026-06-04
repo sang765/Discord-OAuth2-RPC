@@ -153,10 +153,10 @@ fun main() = runBlocking {
         }
 
         val tokenData = mapUser[ready.user.id]
-        var getExtendURL: List<Map<String, String>> = emptyList()
+        var externalAssets: List<Map<String, String>> = emptyList()
         if (tokenData != null) {
             try {
-                getExtendURL = runBlocking {
+                externalAssets = runBlocking {
                     Util.getExternal(rest, "${tokenData.tokenType} ${tokenData.accessToken}", CLIENT_ID,
                         "https://assets.ppy.sh/beatmaps/1550633/covers/list.jpg")
                 }
@@ -171,7 +171,7 @@ fun main() = runBlocking {
             .setDetails("MariannE - Yooh")
             .setParty(mapOf("max" to 8, "current" to 1))
             .setStartTimestamp(System.currentTimeMillis())
-            .setAssetsLargeImage(if (getExtendURL.isNotEmpty()) getExtendURL[0]["external_asset_path"] else null)
+            .setAssetsLargeImage(if (externalAssets.isNotEmpty()) externalAssets[0]["external_asset_path"] else null)
             .setAssetsLargeText("Idle")
             .setAssetsSmallImage("373370493127884800")
             .setAssetsSmallText("click the circles")
